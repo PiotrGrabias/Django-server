@@ -1,5 +1,5 @@
 import logging
-from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import authenticate, get_user_model, login
 from django.contrib.auth.models import User
 from django.db.models import Q
 from rest_framework.permissions import AllowAny
@@ -16,6 +16,7 @@ from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from .tokens import account_activation_token
+
 
 User = get_user_model()
 
@@ -58,24 +59,39 @@ def product_detail(request, pk):
         return HttpResponse(status=204)
 
 
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+    parser_classes = [JSONParser]
+
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        user = User.objects.filter(Q(username=username) | Q(email=username)).first()
+        if user is not None:
+            user = authenticate(username=username, password=password)
+            if user.email_confirmed:
+                token, created = Token.objects.get_or_create(user=user)
+                return JsonResponse({'token': token.key, 'email_confirmed': user.email_confirmed})
+            else:
+                return JsonResponse({'errors': 'Please confirm your email address.'}, status=401)
+
 class RegistrationView(APIView):
     permission_classes = [AllowAny]
     parser_classes = [JSONParser]
 
     def post(self, request):
-        User.is_active = False
-        username = request.data.get('username')
         email = request.data.get('email')
         password = request.data.get('password')
+        username = request.data.get('username')
 
         if User.objects.filter(username=username).exists():
-            return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Nazwa użytkownika jest zajęta'}, status=status.HTTP_400_BAD_REQUEST)
         if User.objects.filter(email=email).exists():
-            return Response({'error': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
-        user = User.objects.create_user(email=email, password=password, username=username)
+            return Response({'error': 'Email jest już w użyciu'}, status=status.HTTP_400_BAD_REQUEST)
+        user = User.objects.create_user(email=email, password=password, username=username, email_confirmed=False)
         token, _ = Token.objects.get_or_create(user=user)
         self.send_activation_email(user, request)
-        return Response({'token': token.key}, status=status.HTTP_201_CREATED)
+        return Response({'token': token.key, 'email_confirmed': user.email_confirmed}, status=status.HTTP_201_CREATED)
 
     def send_activation_email(self, user, request):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -84,37 +100,11 @@ class RegistrationView(APIView):
         subject = 'Aktywuj swoje konto'
         message = f'Witaj {user.username},\nUźyj tego linku aby potwierdzić swój adres e-mail i aktywować konto {activation_link}'
         from_email = "komputer290123@gmail.com"
-        recipient_list = ['komputer2901@wp.pl']
+        recipient_list = [user.email]
         try:
             send_mail(subject, message, from_email, recipient_list)
         except Exception as e:
             print(e)
-
-logger = logging.getLogger(__name__)
-
-class LoginView(APIView):
-    permission_classes = [AllowAny]
-    parser_classes = [JSONParser]
-
-    def post(self, request):
-        login = request.data.get('login')
-        password = request.data.get('password')
-
-        logger.debug(f"Attempting login with: login={login}, password={password}")
-
-        user = User.objects.filter(Q(username=login) | Q(email=login)).first()
-        if not user:
-            logger.error("User not found or incorrect login method.")
-            return JsonResponse({'errors': {'error': 'Invalid Credentials'}}, status=401)
-
-        user = authenticate(username=user.username, password=password)
-        if user:
-            token, _ = Token.objects.get_or_create(user=user)
-            logger.debug(f"Token created: {token.key}")
-            return JsonResponse({'token': token.key})
-        else:
-            logger.error("Authentication failed - check username and password.")
-            return JsonResponse({'errors': {'error': 'Invalid Credentials'}}, status=401)
 
 
 def activate_account(request, uidb64, token):
@@ -122,21 +112,14 @@ def activate_account(request, uidb64, token):
         uid = urlsafe_base64_decode(uidb64).decode()
         user = User.objects.get(pk=uid)
         print("Encoded UID:", uid)
-
-
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         user = None
-
     if user is None:
-        logger.error('User not found')
         return HttpResponse('Activation link is invalid!', status=400)
-
-    logger.info(f'User: {user.username}, Token: {token}')
-
     if user is not None and account_activation_token.check_token(user, token):
         user.is_active = True
+        user.email_confirmed = True
         user.save()
         return HttpResponse('Account activated successfully')
     else:
-        logger.error('Invalid token')
         return HttpResponse('Activation link is invalid!', status=400)

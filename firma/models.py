@@ -44,7 +44,7 @@ class Product(models.Model):
     price = models.FloatField()
     producer = models.CharField(max_length=200, default="GOODRAM")
     category = models.CharField(max_length=200, default="ram")
-    description = models.CharField(max_length=200, default='Opis')
+    description = models.CharField(max_length=10000, default='Opis')
     image_path = models.CharField(max_length=200)
     amount = models.IntegerField()
     date_added = models.DateTimeField("date published", default=timezone.now)

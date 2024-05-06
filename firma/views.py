@@ -9,16 +9,30 @@ from rest_framework.parsers import JSONParser
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, generics, filters
 from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from .tokens import account_activation_token
 from .serializers import ProductSerializer, CartSerializer, CartItemSerializer, CreateUserSerializer
 from .models import Cart, CartItem, Product
-
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 
 User = get_user_model()
+
+
+class FilterByCategoryorProducer(generics.ListAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['category', 'producer']
+
+
+class ProductDetailView(generics.RetrieveAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    permission_classes = [AllowAny]
 
 
 class ProductViewSet(viewsets.ModelViewSet):

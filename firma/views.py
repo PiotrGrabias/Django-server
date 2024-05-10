@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate, get_user_model, login
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import User
 from django.db.models import Q
 from rest_framework.decorators import action
@@ -14,10 +14,8 @@ from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from .tokens import account_activation_token
-from .serializers import ProductSerializer, CartSerializer, CartItemSerializer, CreateUserSerializer
+from .serializers import ProductSerializer, CartSerializer
 from .models import Cart, CartItem, Product
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
 
 User = get_user_model()
 

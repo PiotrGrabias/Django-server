@@ -1,8 +1,8 @@
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import User
 from django.db.models import Q
-from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.permissions import AllowAny
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
@@ -12,19 +12,12 @@ from rest_framework.authtoken.models import Token
 from rest_framework import status, viewsets, generics, filters
 from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes
+from django.utils.encoding import force_bytes, force_str
 from .tokens import account_activation_token
-from .serializers import ProductSerializer, CartSerializer
-from .models import Cart, CartItem, Product
+from .serializers import ProductSerializer
+from .models import Product
 
 User = get_user_model()
-
-
-class FilterByCategoryorProducer(generics.ListAPIView):
-    queryset = Product.objects.all()
-    serializer_class = ProductSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['category', 'producer']
 
 
 class ProductDetailView(generics.RetrieveAPIView):
@@ -37,36 +30,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [AllowAny]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]  # Dodaj filtr do tego widoku, jeśli potrzebne
+    search_fields = ['category', 'producer']
 
-
-class CartViewSet(viewsets.ModelViewSet):
-    queryset = Cart.objects.all()
-    serializer_class = CartSerializer
-    permission_classes = [IsAuthenticated]
-
-    @action(detail=True, methods=['post'])
-    def add_item(self, request, pk=None):
-        cart = self.get_object()
-        product_id = request.data.get('product_id')
-        quantity = request.data.get('quantity', 1)
-
-        product = Product.objects.get(id=product_id)
-        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
-        cart_item.quantity += int(quantity)
-        cart_item.save()
-
-        serializer = CartSerializer(cart)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=['post'])
-    def remove_item(self, request, pk=None):
-        cart = self.get_object()
-        product_id = request.data.get('product_id')
-
-        CartItem.objects.filter(cart=cart, product_id=product_id).delete()
-
-        serializer = CartSerializer(cart)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 @csrf_exempt
 def product_detail(request, pk):
@@ -133,26 +99,26 @@ class RegistrationView(APIView):
         token = account_activation_token.make_token(user)
         activation_link = f"http://localhost:3000/activate/{uid}/{token}"
         subject = 'Aktywuj swoje konto'
-        message = f'Witaj {user.username},\nUźyj tego linku aby potwierdzić swój adres e-mail i aktywować konto {activation_link}'
+        message = f'Witaj {user.username},\n Uźyj tego linku aby potwierdzić swój adres e-mail i aktywować konto {activation_link}'
         from_email = "komputer290123@gmail.com"
         recipient_list = [user.email]
         try:
-            send_mail(subject, message, from_email, recipient_list)
+            send_mail(subject, message, from_email, recipient_list, token)
         except Exception as e:
             print(e)
 
 
-class ActivateAccountView(APIView):
-    def get(self, request, uidb64, token):
-        try:
-            uid = urlsafe_base64_decode(uidb64).decode()
-            user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            user = None
-        if user and account_activation_token.check_token(user, token):
-            user.is_active = True
-            user.email_confirmed = True
-            user.save()
-            return HttpResponse('Account activated successfully')
-        else:
-            return HttpResponse('Activation link is invalid!', status=400)
+def activate(request, uidb64, token):
+    User = get_user_model()
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+    if user and account_activation_token.check_token(user, token):
+        user.is_active = True
+        user.email_confirmed = True
+        user.save()
+        return HttpResponse('Account activated successfully', request)
+    else:
+        return JsonResponse({'error': 'Invalid token', 'user': user.username}, status=400)

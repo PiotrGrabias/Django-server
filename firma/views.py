@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import AllowAny
 from django.http import HttpResponse, JsonResponse
@@ -30,8 +31,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [AllowAny]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]  # Dodaj filtr do tego widoku, jeśli potrzebne
-    search_fields = ['category', 'producer']
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['category', 'producer']
 
 
 @csrf_exempt

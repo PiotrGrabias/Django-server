@@ -17,6 +17,7 @@ from django.utils.encoding import force_bytes, force_str
 from .tokens import account_activation_token
 from .serializers import ProductSerializer
 from .models import Product
+from django_filters import CharFilter, FilterSet
 
 User = get_user_model()
 
@@ -27,12 +28,24 @@ class ProductDetailView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
 
 
+class ProductFilter(FilterSet):
+    producer = CharFilter(field_name='producer', method='filter_by_producer')
+
+    class Meta:
+        model = Product
+        fields = ['category', 'producer']
+
+    def filter_by_producer(self, queryset, name, value):
+        producers = value.split(',')
+        return queryset.filter(producer__in=producers)
+
+
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['category', 'producer']
+    filterset_class = ProductFilter
 
 
 @csrf_exempt

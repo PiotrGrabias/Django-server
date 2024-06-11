@@ -17,7 +17,7 @@ from django.utils.encoding import force_bytes, force_str
 from .tokens import account_activation_token
 from .serializers import ProductSerializer
 from .models import Product
-from django_filters import CharFilter, FilterSet
+from django_filters import CharFilter, FilterSet, RangeFilter
 
 User = get_user_model()
 
@@ -30,10 +30,10 @@ class ProductDetailView(generics.RetrieveAPIView):
 
 class ProductFilter(FilterSet):
     producer = CharFilter(field_name='producer', method='filter_by_producer')
-
+    price = RangeFilter()
     class Meta:
         model = Product
-        fields = ['category', 'producer']
+        fields = ['category', 'producer', 'price']
 
     def filter_by_producer(self, queryset, name, value):
         producers = value.split(',')

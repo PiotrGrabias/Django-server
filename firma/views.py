@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import User
+from django.contrib.sites import requests
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -7,6 +8,7 @@ from rest_framework.permissions import AllowAny
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
+from rest_framework.utils import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
@@ -16,7 +18,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from .tokens import account_activation_token
 from .serializers import ProductSerializer
-from .models import Product
+from .models import Product, Order
 from django_filters import CharFilter, FilterSet, RangeFilter
 
 User = get_user_model()
@@ -136,3 +138,4 @@ def activate(request, uidb64, token):
         return HttpResponse('Account activated successfully', request)
     else:
         return JsonResponse({'error': 'Invalid token', 'user': user.username}, status=400)
+

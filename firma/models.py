@@ -63,33 +63,23 @@ class Product(models.Model):
         return self.product_name
 
 
-class Cart(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    products = models.ManyToManyField(Product, through='CartItem')
-
-    def __str__(self):
-        return self.products
-
-
-class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
-
-    def __str__(self):
-        return self.cart, self.product, self.quantity
-
-
 class Order(models.Model):
-        secret = models.CharField(max_length=1000, default="", blank=True)
-        name = models.CharField
-        last_name = models.CharField
-        address = models.CharField
-        city_code = models.CharField
-        city_name = models.CharField
-        email = models.EmailField
-        phone = models.CharField
-        def generate_secret(self):
-            self.secret = str(random.randint(10000, 99999))
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # Link to the user
+    secret = models.CharField(max_length=1000, default="", blank=True)  # Secret for order tracking or verification
+    first_name = models.CharField(max_length=100)  # First name of the user placing the order
+    last_name = models.CharField(max_length=100)  # Last name
+    address = models.CharField(max_length=255)  # Shipping address
+    city_code = models.CharField(max_length=10)  # Postal/ZIP code
+    city_name = models.CharField(max_length=100)  # City
+    email = models.EmailField()  # Email for order confirmation
+    phone = models.CharField(max_length=20)  # Phone number for contact
+    date_created = models.DateTimeField(auto_now_add=True)  # Automatically set when order is created
+
+    def generate_secret(self):
+        self.secret = str(random.randint(10000, 99999))  # Generate a random 5-digit number as a secret
+
+    def __str__(self):
+        return f"Order {self.id} by {self.user.email}"  # Display order ID and user email
+
 
 

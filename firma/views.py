@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.sites import requests
 from django.db.models import Q
@@ -18,7 +19,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from .tokens import account_activation_token
 from .serializers import ProductSerializer
-from .models import Product, Order
+from .models import Product, Order, Cart
 from django_filters import CharFilter, FilterSet, RangeFilter
 
 User = get_user_model()
@@ -139,3 +140,31 @@ def activate(request, uidb64, token):
     else:
         return JsonResponse({'error': 'Invalid token', 'user': user.username}, status=400)
 
+
+def create_order(request):
+    data = request.data
+    try:
+        first_name = data.get('firstName')
+        last_name = data.get('lastName')
+        address = data.get('address')
+        zip_code = data.get('zipCode')
+        city_name = data.get('city')
+        phone = data.get('phone')
+        email = data.get('email')
+        delivery=data.get('deliveryType')
+        order = Order.objects.create(
+            first_name=first_name,
+            last_name=last_name,
+            address=address,
+            city_code=zip_code,
+            city_name=city_name,
+            email=email,
+            phone=phone,
+            delivery=delivery
+        )
+        order.generate_secret()  # Generate the order secret for tracking
+        order.save()
+        return Response({'message': 'Order created successfully!'}, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

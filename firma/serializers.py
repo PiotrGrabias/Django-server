@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, Cart, CartItem, CustomUser
+from .models import Product, CustomUser
 from django.contrib.auth.models import User
 
 
@@ -7,21 +7,6 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = '__all__'
-
-
-class CartItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CartItem
-        fields = '__all__'
-
-
-class CartSerializer(serializers.ModelSerializer):
-    items = CartItemSerializer(source='cartitem_set', many=True)  # Include related CartItems
-    user = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all(), required=False)
-
-    class Meta:
-        model = Cart
-        fields = ['id', 'user', 'items']
 
 
 class CreateUserSerializer(serializers.ModelSerializer):

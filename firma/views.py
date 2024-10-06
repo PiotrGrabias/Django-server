@@ -19,7 +19,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from .tokens import account_activation_token
 from .serializers import ProductSerializer
-from .models import Product, Order, Cart
+from .models import Product, Order
 from django_filters import CharFilter, FilterSet, RangeFilter
 
 User = get_user_model()

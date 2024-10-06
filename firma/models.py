@@ -81,12 +81,15 @@ class CartItem(models.Model):
 
 
 class Order(models.Model):
-    secret = models.CharField(max_length=1000, default="", blank=True)
-    amount = models.DecimalField(default=0, decimal_places="2", max_digits="6")
-    paid = models.BooleanField(default=False)
-    checkout_url = models.CharField(max_length=1000, default="", blank=True)
-
-    def generate_secret(self):
-        self.secret = str(random.randint(10000, 99999))
+        secret = models.CharField(max_length=1000, default="", blank=True)
+        name = models.CharField
+        last_name = models.CharField
+        address = models.CharField
+        city_code = models.CharField
+        city_name = models.CharField
+        email = models.EmailField
+        phone = models.CharField
+        def generate_secret(self):
+            self.secret = str(random.randint(10000, 99999))
 
 

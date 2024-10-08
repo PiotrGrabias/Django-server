@@ -69,11 +69,12 @@ class Order(models.Model):
     first_name = models.CharField(max_length=100)  # First name of the user placing the order
     last_name = models.CharField(max_length=100)  # Last name
     address = models.CharField(max_length=255)  # Shipping address
-    city_code = models.CharField(max_length=10)  # Postal/ZIP code
+    city_code = models.CharField(max_length=100)  # Postal/ZIP code
     city_name = models.CharField(max_length=100)  # City
-    email = models.EmailField()  # Email for order confirmation
+    email = models.EmailField(max_length=255)  # Email for order confirmation
     phone = models.CharField(max_length=20)  # Phone number for contact
     date_created = models.DateTimeField(auto_now_add=True)  # Automatically set when order is created
+    price = models.FloatField()
 
     def generate_secret(self):
         self.secret = str(random.randint(10000, 99999))  # Generate a random 5-digit number as a secret

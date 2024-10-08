@@ -1,19 +1,15 @@
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.contrib.sites import requests
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import AllowAny
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
-from rest_framework.utils import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from rest_framework import status, viewsets, generics, filters
+from rest_framework import status, viewsets, generics
 from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
@@ -141,30 +137,47 @@ def activate(request, uidb64, token):
         return JsonResponse({'error': 'Invalid token', 'user': user.username}, status=400)
 
 
-def create_order(request):
-    data = request.data
-    try:
-        first_name = data.get('firstName')
-        last_name = data.get('lastName')
-        address = data.get('address')
-        zip_code = data.get('zipCode')
-        city_name = data.get('city')
-        phone = data.get('phone')
-        email = data.get('email')
-        delivery=data.get('deliveryType')
-        order = Order.objects.create(
-            first_name=first_name,
-            last_name=last_name,
-            address=address,
-            city_code=zip_code,
-            city_name=city_name,
-            email=email,
-            phone=phone,
-            delivery=delivery
-        )
-        order.generate_secret()  # Generate the order secret for tracking
-        order.save()
-        return Response({'message': 'Order created successfully!'}, status=status.HTTP_201_CREATED)
+class CreateOrderView(APIView):
+    permission_classes = []
+    parser_classes = [JSONParser]
 
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request, *args, **kwargs):
+        print(request.data)
+        data = request.data
+        try:
+            first_name = data.get('firstName')
+            last_name = data.get('lastName')
+            address = data.get('address')
+            zip_code = data.get('zipCode')
+            city_name = data.get('city')
+            phone = data.get('phone')
+            email = data.get('email')
+            delivery_type = data.get('deliveryType')
+            price = data.get('price')
+            user = None
+            if request.user.is_authenticated:
+                user = request.user
+            else:
+                try:
+                    user = User.objects.get(email=email)
+                except User.DoesNotExist:
+                    user = None
+            order = Order.objects.create(
+                first_name=first_name,
+                last_name=last_name,
+                address=address,
+                city_code=zip_code,
+                city_name=city_name,
+                email=email,
+                phone=phone,
+                delivery=delivery_type,
+                price=price
+            )
+
+            order.generate_secret()
+            order.save()
+
+            return Response({'message': 'Order created successfully!'}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

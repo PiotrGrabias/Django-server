@@ -138,10 +138,10 @@ def activate(request, uidb64, token):
 
 
 class CreateOrderView(APIView):
-    permission_classes = []
+    permission_classes = [AllowAny]
     parser_classes = [JSONParser]
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         print(request.data)
         data = request.data
         try:
@@ -154,14 +154,8 @@ class CreateOrderView(APIView):
             email = data.get('email')
             delivery_type = data.get('deliveryType')
             price = data.get('price')
-            user = None
-            if request.user.is_authenticated:
-                user = request.user
-            else:
-                try:
-                    user = User.objects.get(email=email)
-                except User.DoesNotExist:
-                    user = None
+            product_name = data.get('items')
+            items = data.get('items')
             order = Order.objects.create(
                 first_name=first_name,
                 last_name=last_name,
@@ -171,7 +165,8 @@ class CreateOrderView(APIView):
                 email=email,
                 phone=phone,
                 delivery=delivery_type,
-                price=price
+                price=price,
+                products={item['name']: item['amount'] for item in items}
             )
 
             order.generate_secret()

@@ -2,7 +2,8 @@ from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.permissions import AllowAny
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
@@ -14,7 +15,7 @@ from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from .tokens import account_activation_token
-from .serializers import ProductSerializer
+from .serializers import ProductSerializer, OrderSerializer
 from .models import Product, Order
 from django_filters import CharFilter, FilterSet, RangeFilter
 
@@ -81,6 +82,7 @@ class LoginView(APIView):
         user = User.objects.filter(Q(username=username) | Q(email=username)).first()
         if user is not None:
             user = authenticate(username=username, password=password)
+            print(user)
             if user.email_confirmed:
                 token, created = Token.objects.get_or_create(user=user)
                 return JsonResponse({'token': token.key, 'email_confirmed': user.email_confirmed})
@@ -137,13 +139,13 @@ def activate(request, uidb64, token):
         return JsonResponse({'error': 'Invalid token', 'user': user.username}, status=400)
 
 
-class CreateOrderView(APIView):
-    permission_classes = [AllowAny]
+class CreateOrder(APIView):
     parser_classes = [JSONParser]
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        print(request.data)
         data = request.data
+        print(data)
         try:
             first_name = data.get('firstName')
             last_name = data.get('lastName')
@@ -154,7 +156,6 @@ class CreateOrderView(APIView):
             email = data.get('email')
             delivery_type = data.get('deliveryType')
             price = data.get('price')
-            product_name = data.get('items')
             items = data.get('items')
             order = Order.objects.create(
                 first_name=first_name,
@@ -166,7 +167,7 @@ class CreateOrderView(APIView):
                 phone=phone,
                 delivery=delivery_type,
                 price=price,
-                products={item['name']: item['amount'] for item in items}
+                products={item['prodName']: item['amount'] for item in items},
             )
 
             order.generate_secret()
@@ -175,4 +176,28 @@ class CreateOrderView(APIView):
             return Response({'message': 'Order created successfully!'}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request):
+        try:
+            user_orders = Order.objects.filter(email=request.user.email)
+            serializer = OrderSerializer(user_orders, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetOrders(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        try:
+            username = request.query_params.get('userName')
+            print(username)
+            user_orders = Order.objects.filter(email=username)
+            serializer = OrderSerializer(user_orders, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print("Error:", e)
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

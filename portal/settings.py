@@ -49,6 +49,7 @@ STATIC_URL = "static/"
 ROOT_PATH = os.path.dirname(__file__)
 STATICFILES_DIRS = [os.path.join(ROOT_PATH, 'static')]
 CORS_ALLOW_ALL_ORIGINS = True
+SESSION_COOKIE_SECURE = False
 CSRF_TRUSTED_ORIGINS = ['http://localhost:3000']
 CORS_ALLOWED_ORIGINS = [
     'https://localhost:3000',

@@ -64,12 +64,6 @@ class Product(models.Model):
 
 
 class Order(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
-    )
     secret = models.CharField(max_length=1000, default="", blank=True)
     first_name = models.CharField(max_length=100, default="")
     last_name = models.CharField(max_length=100, default="")

@@ -76,6 +76,7 @@ class Order(models.Model):
     price = models.FloatField(default=0)
     delivery = models.CharField(max_length=255, default="")
     products = models.JSONField(default=dict)
+    image = models.JSONField(default=dict)
 
     def generate_secret(self):
         self.secret = str(random.randint(10000, 99999))

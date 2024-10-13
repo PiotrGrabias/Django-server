@@ -167,9 +167,9 @@ class CreateOrder(APIView):
                 phone=phone,
                 delivery=delivery_type,
                 price=price,
-                products={item['prodName']: item['amount'] for item in items},
+                products={item['id']: {'prodName': item['prodName'], 'amount': item['amount']} for item in items},
+                image={item['id']: item['image'] for item in items}
             )
-
             order.generate_secret()
             order.save()
 

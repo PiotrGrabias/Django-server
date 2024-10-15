@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -46,6 +47,27 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend]
     filterset_class = ProductFilter
+
+
+class DecrementQuantity(APIView):
+    permission_classes = [AllowAny]
+    parser_classes = [JSONParser]
+    def patch(self, request, pk):
+        print(request.data)
+        try:
+            product = Product.objects.get(pk=pk)
+            quantity_to_decrement = request.data.get('quantity', 1)
+
+            if quantity_to_decrement > product.amount:
+                return Response({'error': 'Not enough stock available.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            product.amount -= quantity_to_decrement
+            product.save()
+            return Response({'message': 'Quantity updated successfully.'}, status=status.HTTP_200_OK)
+
+        except Product.DoesNotExist:
+            return Response({'error': 'Product not found.'}, status=status.HTTP_404_NOT_FOUND)
+
 
 
 @csrf_exempt

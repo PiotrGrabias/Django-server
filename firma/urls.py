@@ -13,4 +13,6 @@ urlpatterns = [
     path('api/register/', views.RegistrationView.as_view(), name='register'),
     path('api/activate/<uidb64>/<token>/', views.activate, name='activate'),
     path('api/product/<int:pk>/', views.ProductDetailView.as_view(), name='product-detail'),
+    path('api/products/<int:pk>/decrement/', views.DecrementQuantity.as_view(), name='decrement_product_quantity'),
+
 ]

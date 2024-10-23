@@ -29,9 +29,13 @@ class ProductDetailView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
 
 
+from django_filters import FilterSet, RangeFilter, CharFilter
+
+
 class ProductFilter(FilterSet):
     producer = CharFilter(field_name='producer', method='filter_by_producer')
     price = RangeFilter()
+
     class Meta:
         model = Product
         fields = ['category', 'producer', 'price']
@@ -39,6 +43,19 @@ class ProductFilter(FilterSet):
     def filter_by_producer(self, queryset, name, value):
         producers = value.split(',')
         return queryset.filter(producer__in=producers)
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+
+        price_min = self.data.get('price_min', None)
+        price_max = self.data.get('price_max', None)
+
+        if price_min:
+            queryset = queryset.filter(price__gte=price_min)
+        if price_max:
+            queryset = queryset.filter(price__lte=price_max)
+
+        return queryset
 
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -62,6 +79,7 @@ class DecrementQuantity(APIView):
                 return Response({'error': 'Not enough stock available.'}, status=status.HTTP_400_BAD_REQUEST)
 
             product.amount -= quantity_to_decrement
+            product.sold_amount += quantity_to_decrement
             product.save()
             return Response({'message': 'Quantity updated successfully.'}, status=status.HTTP_200_OK)
 

@@ -4,9 +4,11 @@ from django.contrib.auth.models import User
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    added_last_week = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = Product
-        fields = '__all__'
+        fields = ['product_name', 'price', 'producer', 'category', 'description', 'image_path', 'amount', 'date_added', 'added_last_week', 'sold_amount']
 
 
 class OrderSerializer(serializers.ModelSerializer):

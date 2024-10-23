@@ -50,14 +50,13 @@ class Product(models.Model):
     image_path = models.CharField(max_length=200)
     amount = models.IntegerField()
     date_added = models.DateTimeField("date published", default=timezone.now)
-    
-    def new(self):
-        self.date_added = dateformat.format(timezone.now(), 'Y-m-d')
-        return self.date_added >= timezone.now()
+    sold_amount = models.IntegerField(default=0)
 
+    @property
     def added_last_week(self):
-        seven_days_ago = self.date_added - datetime.timedelta(days=7)
-        return seven_days_ago >= 7
+        now = timezone.now()
+        seven_days_ago = now - datetime.timedelta(days=7)
+        return self.date_added >= seven_days_ago
 
     def __str__(self):
         return self.product_name

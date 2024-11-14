@@ -77,11 +77,12 @@ class Order(models.Model):
     products = models.JSONField(default=dict)
     image = models.JSONField(default=dict)
 
+
     def generate_secret(self):
         self.secret = str(random.randint(10000, 99999))
 
-    def __str__(self):
-        return f"Order {self.id} by {self.user.email if self.user else 'Guest'}"
+
+
 
 
 

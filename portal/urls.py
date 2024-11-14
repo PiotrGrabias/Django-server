@@ -6,6 +6,7 @@ router = routers.DefaultRouter()
 urlpatterns = router.urls
 
 urlpatterns += [
-    path("admin/", admin.site.urls),
-    path("", include("firma.urls")),
+    path("jF8r$kL1pWz3Q@h9N7xG2kD!vA6YtO*5bTzLm0s/", admin.site.urls),
+    path('admin/', include('admin_honeypot.urls', namespace='admin_honeypot')),
+    path("", include("firma.urls"))
 ]

@@ -32,6 +32,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Application definition
 AUTH_USER_MODEL = 'firma.CustomUser'
 INSTALLED_APPS = [
+    'admin_honeypot',
     'corsheaders',
     "firma.apps.FirmaConfig",
     "django.contrib.admin",

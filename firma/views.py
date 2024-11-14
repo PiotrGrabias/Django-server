@@ -23,7 +23,7 @@ from django_filters import CharFilter, FilterSet, RangeFilter
 User = get_user_model()
 
 
-class ProductDetailView(generics.RetrieveAPIView):
+class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [AllowAny]
@@ -69,6 +69,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 class DecrementQuantity(APIView):
     permission_classes = [AllowAny]
     parser_classes = [JSONParser]
+
     def patch(self, request, pk):
         print(request.data)
         try:
@@ -125,7 +126,12 @@ class LoginView(APIView):
             print(user)
             if user.email_confirmed:
                 token, created = Token.objects.get_or_create(user=user)
-                return JsonResponse({'token': token.key, 'email_confirmed': user.email_confirmed})
+                return JsonResponse({'token': token.key, 'email_confirmed': user.email_confirmed,
+                                     'is_superuser': user.is_superuser})
+            elif user.is_superuser:
+                token, created = Token.objects.get_or_create(user=user)
+                return JsonResponse({'token': token.key, 'email_confirmed': user.email_confirmed,
+                                     'is_superuser': user.is_superuser})
             else:
                 return JsonResponse({'errors': 'Please confirm your email address.'}, status=401)
         return JsonResponse({'errors': 'Invalid credentials.'}, status=400)
@@ -228,16 +234,150 @@ class CreateOrder(APIView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class GetOrders(APIView):
+class AllOrders(APIView):
+    parser_classes = [JSONParser]
     permission_classes = [AllowAny]
 
     def get(self, request):
         try:
-            username = request.query_params.get('userName')
-            print(username)
-            user_orders = Order.objects.filter(email=username)
-            serializer = OrderSerializer(user_orders, many=True)
+            orders = Order.objects.all()
+            serializer = OrderSerializer(orders, many=True)
+
+            # Wrap the data in an 'attributes' key
+            orders_data = [
+                {"attributes": order} for order in serializer.data
+            ]
+
+            return Response(orders_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OrderFilter(FilterSet):
+    email = CharFilter(field_name='email', lookup_expr='icontains')
+    status = CharFilter(field_name='status', lookup_expr='iexact')
+
+    class Meta:
+        model = Order
+        fields = ['email', 'status']
+
+
+class GetOrders(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser]
+
+    def get(self, request):
+        try:
+            orders = Order.objects.all()
+            filterset = OrderFilter(request.query_params, queryset=orders)
+            if filterset.is_valid():
+                orders = filterset.qs
+
+            orders = orders.order_by('-date_created')
+
+            serializer = OrderSerializer(orders, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
-            print("Error:", e)
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CreateProductView(APIView):
+    permission_classes = [AllowAny]
+    parser_classes = [JSONParser]
+
+    def post(self, request):
+        data = request.data
+
+        product_name = data.get('name')
+        price = data.get('price')
+        producer = data.get('producer')
+        category = data.get('category')
+        description = data.get('description')
+        image_path = data.get('image_path')
+        amount = data.get('amount')
+
+        if not all([product_name, price, producer, category, amount]):
+            return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            product = Product.objects.create(
+                product_name=product_name,
+                price=price,
+                producer=producer,
+                category=category,
+                description=description,
+                image_path=image_path,
+                amount=amount
+            )
+
+            return Response({
+                'message': 'Product created successfully!',
+                'product': {
+                    'id': product.id,
+                    'product_name': product.product_name,
+                    'price': product.price,
+                    'producer': product.producer,
+                    'category': product.category,
+                    'description': product.description,
+                    'image_path': product.image_path,
+                    'amount': product.amount
+                }
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            # Handle unexpected errors
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateProductView(APIView):
+    permission_classes = [AllowAny]
+    parser_classes = [JSONParser]
+
+    def put(self, request, product_id):
+        data = request.data
+
+        # Retrieve the product to update
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({'error': 'Product not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Extract and validate fields from the request
+        product_name = data.get('product_name')
+        price = data.get('price')
+        producer = data.get('producer')
+        category = data.get('category')
+        description = data.get('description')
+        image_path = data.get('image_path')
+        amount = data.get('amount')
+
+        if not all([product_name, price, producer, category, amount]):
+            return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update the product fields
+        product.product_name = product_name
+        product.price = price
+        product.producer = producer
+        product.category = category
+        product.description = description
+        product.image_path = image_path
+        product.amount = amount
+
+        # Save changes to the database
+        product.save()
+
+        # Return a success response with updated product data
+        return Response({
+            'message': 'Product updated successfully!',
+            'product': {
+                'id': product.id,
+                'product_name': product.product_name,
+                'price': product.price,
+                'producer': product.producer,
+                'category': product.category,
+                'description': product.description,
+                'image_path': product.image_path,
+                'amount': product.amount
+            }
+        }, status=status.HTTP_200_OK)

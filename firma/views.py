@@ -193,6 +193,7 @@ class CreateOrder(APIView):
         data = request.data
         print(data)
         try:
+            # Extract order data
             first_name = data.get('firstName')
             last_name = data.get('lastName')
             address = data.get('address')
@@ -203,6 +204,8 @@ class CreateOrder(APIView):
             delivery_type = data.get('deliveryType')
             price = data.get('price')
             items = data.get('items')
+
+            # Create the order
             order = Order.objects.create(
                 first_name=first_name,
                 last_name=last_name,
@@ -218,6 +221,46 @@ class CreateOrder(APIView):
             )
             order.generate_secret()
             order.save()
+
+            # Send confirmation email
+            self.order_confirmation(order, email)
+            return Response({"message": "Order created successfully!"}, status=201)
+
+        except Exception as e:
+            print(e)
+            return Response({"error": "Order creation failed."}, status=400)
+
+    def order_confirmation(self, order, recipient_email):
+        subject = "Potwierdzenie zamówienia"
+        message = (
+            f"Dzień dobry {order.first_name} {order.last_name},\n\n"
+            f"Dziękujemy za złożenie zamówienia w naszym sklepie!\n\n"
+            f"**Szczegóły zamówienia:**\n"
+            f"Adres dostawy: {order.address}, {order.city_code} {order.city_name}\n"
+            f"Telefon kontaktowy: {order.phone}\n"
+            f"Metoda dostawy: {order.delivery}\n"
+            f"Łączna kwota: {order.price} PLN\n\n"
+            f"Produkty w zamówieniu:\n"
+        )
+
+        # Add items to the message
+        for prod_id, details in order.products.items():
+            prod_name = details['prodName']
+            amount = details['amount']
+            message += f"- {prod_name} (ilość: {amount})\n"
+
+        # Conclude the email
+        message += (
+            "\nTwoje zamówienie jest obecnie przetwarzane. "
+            "W razie pytań prosimy o kontakt pod adresem: komputer290123@gmail.com.\n\n"
+            "Z poważaniem,\nZespół Pc-parts"
+        )
+
+        # Send the email
+        try:
+            send_mail(subject, message, "komputer290123@gmail.com", [recipient_email])
+        except Exception as e:
+            print(f"Error sending email: {e}")
 
             return Response({'message': 'Order created successfully!'}, status=status.HTTP_201_CREATED)
 

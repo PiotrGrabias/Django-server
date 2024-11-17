@@ -424,3 +424,40 @@ class UpdateProductView(APIView):
                 'amount': product.amount
             }
         }, status=status.HTTP_200_OK)
+
+
+class ContactEmail(APIView):
+    permission_classes = [AllowAny]
+    parser_classes = [JSONParser]
+
+    def post(self, request):
+        data = request.data
+        user_name = data.get('name')
+        user_email = data.get('email')
+        subject = data.get('subject')
+        message = data.get('message')
+
+        if not all([user_name, user_email, subject, message]):
+            return Response({'error': 'All fields are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        company_email = "komputer290123@gmail.com"
+        full_message = (
+            f"Nowe zapytanie od {user_name} ({user_email}):\n\n"
+            f"Temat: {subject}\n\n"
+            f"Wiadomość:\n{message}\n"
+        )
+
+        # Send the email
+        try:
+            send_mail(
+                subject=f"Temat zapytania: {subject}",
+                message=full_message,
+                from_email=user_email,
+                recipient_list=[company_email],
+                fail_silently=False,
+            )
+            return Response({'message': 'Email sent successfully!'}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"Error sending email: {e}")
+            return Response({'error': 'Failed to send email. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

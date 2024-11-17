@@ -54,6 +54,7 @@ SESSION_COOKIE_SECURE = False
 CSRF_TRUSTED_ORIGINS = ['http://localhost:3000']
 CORS_ALLOWED_ORIGINS = [
     'https://localhost:3000',
+    "https://pracka-inz.web.app"
 ]
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -90,10 +91,15 @@ WSGI_APPLICATION = "portal.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': 'j4pi3rd0l3',
+        'HOST': 'db',
+        'PORT': '5432',
     }
 }
 

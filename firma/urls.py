@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
-from .views import CreateProductView, UpdateProductView, AllOrders
+from .views import CreateProductView, UpdateProductView, AllOrders, ContactEmail
 
 router = DefaultRouter()
 router.register(r'products', views.ProductViewSet)
@@ -18,4 +18,5 @@ urlpatterns = [
     path('api/products/<int:pk>/decrement/', views.DecrementQuantity.as_view(), name='decrement_product_quantity'),
     path('api/product/<int:product_id>/update/', UpdateProductView.as_view(), name='update_product'),
     path('api/all-orders/', AllOrders.as_view(), name='all_orders'),
+    path('api/contact/', ContactEmail.as_view(), name='contact-email'),
 ]
